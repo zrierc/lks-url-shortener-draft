@@ -1,0 +1,111 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "read": "allow",
+    "grep": "allow",
+    "glob": "allow",
+    "list": "allow",
+    "lsp": "allow",
+    "skill": "allow",
+    "todowrite": "allow",
+    "todoread": "allow",
+    "question": "allow"
+  },
+  "agent": {
+    "tf-builder": {
+      "name": "Terraform Builder",
+      "description": "Writes all Terraform modules for lks-url-infra — VPC, ECR, RDS, cache, SQS, ECS, ALB, SSM, CloudWatch",
+      "prompt": "{file:.opencode/prompts/terraform.md}",
+      "mode": "primary",
+      "color": "#8B5CF6",
+      "temperature": 0.1,
+      "steps": 30
+    },
+    "tf-planner": {
+      "name": "Infra Planner",
+      "description": "Read-only planning agent — analyzes architecture, maps dependencies between modules, produces implementation plan before writing any code",
+      "mode": "primary",
+      "color": "#EC4899",
+      "temperature": 0.4,
+      "permission": {
+        "bash": "deny",
+        "write": "deny",
+        "edit": "deny"
+      }
+    },
+    "tf-reviewer": {
+      "name": "Terraform Reviewer",
+      "description": "Hidden subagent — reviews written Terraform for correctness: naming convention compliance, resource interdependencies, missing outputs, and security group rules",
+      "prompt": "{file:.opencode/prompts/infra-reviewer.md}",
+      "mode": "subagent",
+      "hidden": true,
+      "temperature": 0.1,
+      "permission": {
+        "bash": "deny",
+        "write": "deny",
+        "edit": "deny"
+      }
+    },
+    "api-builder": {
+      "name": "API Builder",
+      "description": "Builds the shortener-api service — Bun + Hono + TypeScript + DrizzleORM. Handles shorten, redirect, health, and delete routes. Manages both DynamoDB (Batch A) and Redis (Batch B) cache clients.",
+      "prompt": "{file:.opencode/prompts/api.md}",
+      "mode": "primary",
+      "color": "#10B981",
+      "temperature": 0.2,
+      "steps": 30
+    },
+    "analytics-builder": {
+      "name": "Analytics Builder",
+      "description": "Builds the analytics-service — Bun + Hono + TypeScript + DrizzleORM. Handles SQS consumer loop, IP geolocation, UA parsing, stats routes, and click log writes.",
+      "prompt": "{file:.opencode/prompts/analytics.md}",
+      "mode": "primary",
+      "color": "#F59E0B",
+      "temperature": 0.2,
+      "steps": 30
+    },
+    "frontend-builder": {
+      "name": "Frontend Builder",
+      "description": "Builds the frontend service — Vite + React 19 + TypeScript + TanStack Router/Query + Recharts + TailwindCSS v4 + ShadCN. Handles landing page, shortener form, and stats dashboard with charts.",
+      "prompt": "{file:.opencode/prompts/frontend.md}",
+      "mode": "primary",
+      "color": "#61DAFB",
+      "temperature": 0.3,
+      "steps": 30
+    },
+    "devops-builder": {
+      "name": "DevOps Builder",
+      "description": "Writes Dockerfiles (multi-stage) and GitHub Actions workflows (ECR build+push, ECS force deploy, path filters) for all 3 services.",
+      "prompt": "{file:.opencode/prompts/devops.md}",
+      "mode": "primary",
+      "color": "#2496ED",
+      "temperature": 0.1,
+      "steps": 15
+    },
+    "architect": {
+      "name": "Architect",
+      "description": "Read-only planning agent — maps cross-service data flows, identifies shared types and interface contracts, plans implementation order before any code is written.",
+      "mode": "primary",
+      "color": "#EC4899",
+      "temperature": 0.4,
+      "permission": {
+        "bash": "deny",
+        "write": "deny",
+        "edit": "deny"
+      }
+    },
+    "reviewer": {
+      "name": "Code Reviewer",
+      "description": "Hidden subagent — reviews completed service code for correctness: API contract compliance, SSM env var usage, error handling, DrizzleORM query patterns, and TypeScript type safety.",
+      "prompt": "{file:.opencode/prompts/reviewer.md}",
+      "mode": "subagent",
+      "hidden": true,
+      "temperature": 0.1,
+      "permission": {
+        "bash": "deny",
+        "write": "deny",
+        "edit": "deny"
+      }
+    }
+  }
+}
