@@ -1,0 +1,5 @@
+aws_account_id = "123456789012"   # Replace with your AWS Academy account ID
+aws_region     = "us-east-1"
+cache_type     = "dynamodb"       # "dynamodb" (Batch A) or "redis" (Batch B)
+db_username    = "urlshortener"
+db_password    = "changeme123!"   # Use a strong password
