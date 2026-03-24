@@ -98,7 +98,7 @@ TanStack Query hooks consume these functions.
 const API_BASE = "/api"; // nginx proxies /api/* to ALB
 
 export const apiClient = {
-  shorten: async (url: string): Promise<{ shortUrl: string; code: string }> => {
+  shorten: async (url: string): Promise<{ code: string; short_url: string; original_url: string; created_at: string }> => {
     const res = await fetch(`${API_BASE}/shorten`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -224,7 +224,7 @@ Mirror the analytics-service API response shapes exactly:
 ```typescript
 export type StatsResponse = {
   code: string;
-  original: string;
+  original_url: string;
   click_count: number;
   last_clicked: string | null;
   clicks_over_time: Array<{ date: string; count: number }>;
@@ -241,8 +241,10 @@ export type LeaderboardEntry = {
 };
 
 export type ShortenResponse = {
-  shortUrl: string;
   code: string;
+  short_url: string;
+  original_url: string;
+  created_at: string;
 };
 ```
 
@@ -253,10 +255,11 @@ export type ShortenResponse = {
 ```typescript
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
 
 export default defineConfig({
-  plugins: [react(), TanStackRouterVite()],
+  plugins: [react(), tailwindcss(), TanStackRouterVite()],
 });
 ```
 

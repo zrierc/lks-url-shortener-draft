@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+*.test.ts
+coverage/
+.git/
+README.md
+AGENTS.md
+.vscode/
