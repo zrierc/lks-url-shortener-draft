@@ -69,6 +69,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   SQS_URL: z.string().url(),
   PORT: z.coerce.number().default(3001),
+  // AWS credentials (not needed on ECS — LabRole handles it; needed locally)
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_DEFAULT_REGION: z.string().default("us-east-1"),
 });
 
 export const env = envSchema.parse(process.env);
@@ -153,7 +157,7 @@ type ClickEvent = z.infer<typeof clickEventSchema>;
 ```typescript
 type StatsResponse = {
   code: string;
-  original: string; // from urls table in shortener-api's DB
+  original_url: string; // from urls table — same RDS instance, SELECT original FROM urls WHERE code = ?
   click_count: number;
   last_clicked: string | null;
   // Chart data
@@ -166,6 +170,9 @@ type StatsResponse = {
 ```
 
 All chart arrays are aggregated from `click_log` with `GROUP BY`.
+`original_url` is fetched from the `urls` table (owned by shortener-api but in the same RDS
+instance). analytics-svc defines a read-only reference to the `urls` table in its schema index
+and queries it directly — no HTTP call to shortener-api.
 
 ## GET /api/stats — Leaderboard Response
 
@@ -192,7 +199,7 @@ type LeaderboardEntry = {
 ```
 
 SQS health check: call `GetQueueAttributes` with `QueueUrl` and measure latency.
-If call fails: `{ "status": "error", "latency_ms": null }`.
+If call fails: `{ "status": "error", "latency_ms": -1 }`.
 
 ---
 
@@ -205,24 +212,24 @@ import { pgTable, varchar, integer, timestamp } from "drizzle-orm/pg-core";
 
 export const urlStats = pgTable("url_stats", {
   code: varchar("code", { length: 10 }).primaryKey(),
-  clickCount: integer("click_count").default(0),
-  lastClicked: timestamp("last_clicked"),
+  clickCount: integer("click_count").default(0).notNull(),
+  lastClicked: timestamp("last_clicked", { withTimezone: true }),
 });
 ```
 
 ### click_log
 
 ```typescript
-import { pgTable, serial, varchar, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, bigserial, varchar, text, timestamp } from "drizzle-orm/pg-core";
 
 export const clickLog = pgTable("click_log", {
-  id: serial("id").primaryKey(),
+  id: bigserial("id", { mode: "number" }).primaryKey(),
   code: varchar("code", { length: 10 }).notNull(),
-  clickedAt: timestamp("clicked_at").defaultNow(),
+  clickedAt: timestamp("clicked_at", { withTimezone: true }).defaultNow().notNull(),
   ip: varchar("ip", { length: 45 }),
-  country: varchar("country", { length: 64 }),
+  country: varchar("country", { length: 8 }),
   city: varchar("city", { length: 128 }),
-  deviceType: varchar("device_type", { length: 32 }),
+  deviceType: varchar("device_type", { length: 16 }),
   os: varchar("os", { length: 64 }),
   browser: varchar("browser", { length: 64 }),
   referrer: text("referrer"),
