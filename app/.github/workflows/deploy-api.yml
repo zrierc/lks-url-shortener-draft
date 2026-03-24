@@ -1,0 +1,54 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and deploy shortener-api
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: lks-url-shortener-api
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -t $REGISTRY/$REPOSITORY:latest \
+            -t $REGISTRY/$REPOSITORY:$IMAGE_TAG \
+            ./api/
+          docker push $REGISTRY/$REPOSITORY:latest
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+      - name: Force ECS deployment
+        run: |
+          aws ecs update-service \
+            --cluster lks-url-cluster \
+            --service lks-url-api-svc \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }}

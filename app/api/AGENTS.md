@@ -117,7 +117,7 @@ interface CacheClient {
 2. Generate 6-char code via nanoid
 3. Check RDS: if code collision, regenerate (rare but handle it)
 4. Insert into urls table: { code, original }
-5. Return: { shortUrl: `${env.BASE_URL}/${code}`, code }
+5. Return: { code, short_url: `${env.BASE_URL}/${code}`, original_url: url, created_at }
 ```
 
 ## GET /:code — Redirect Logic (Hot Path)
@@ -164,7 +164,7 @@ const message = {
 ```
 
 Replace `"dynamodb"` key with `"redis"` for Batch B.
-If a dependency is down: `{ "status": "error", "latency_ms": null }` and
+If a dependency is down: `{ "status": "error", "latency_ms": -1 }` and
 set top-level `"status": "degraded"`.
 
 ---
@@ -179,8 +179,8 @@ export const urls = pgTable("urls", {
   id: serial("id").primaryKey(),
   code: varchar("code", { length: 10 }).unique().notNull(),
   original: text("original").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
 });
 ```
 
@@ -240,14 +240,14 @@ await redis.del(`url:${code}`);
 ## drizzle.config.ts
 
 ```typescript
-import type { Config } from "drizzle-kit";
+import { defineConfig } from "drizzle-kit";
 
-export default {
+export default defineConfig({
   schema: "./src/database/schema/*",
   out: "./src/database/migrations",
-  driver: "pg",
+  dialect: "postgresql",
   dbCredentials: {
-    connectionString: process.env.DATABASE_URL!,
+    url: process.env.DATABASE_URL!,
   },
-} satisfies Config;
+});
 ```
