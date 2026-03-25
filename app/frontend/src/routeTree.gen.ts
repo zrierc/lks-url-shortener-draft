@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as ShortenerRouteImport } from './routes/shortener'
+import { Route as LinksRouteImport } from './routes/links'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -22,6 +23,11 @@ const StatsRoute = StatsRouteImport.update({
 const ShortenerRoute = ShortenerRouteImport.update({
   id: '/shortener',
   path: '/shortener',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LinksRoute = LinksRouteImport.update({
+  id: '/links',
+  path: '/links',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/links': typeof LinksRoute
   '/shortener': typeof ShortenerRoute
   '/stats': typeof StatsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/links': typeof LinksRoute
   '/shortener': typeof ShortenerRoute
   '/stats': typeof StatsRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/links': typeof LinksRoute
   '/shortener': typeof ShortenerRoute
   '/stats': typeof StatsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/shortener' | '/stats'
+  fullPaths: '/' | '/about' | '/links' | '/shortener' | '/stats'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/shortener' | '/stats'
-  id: '__root__' | '/' | '/about' | '/shortener' | '/stats'
+  to: '/' | '/about' | '/links' | '/shortener' | '/stats'
+  id: '__root__' | '/' | '/about' | '/links' | '/shortener' | '/stats'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  LinksRoute: typeof LinksRoute
   ShortenerRoute: typeof ShortenerRoute
   StatsRoute: typeof StatsRoute
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/shortener'
       fullPath: '/shortener'
       preLoaderRoute: typeof ShortenerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/links': {
+      id: '/links'
+      path: '/links'
+      fullPath: '/links'
+      preLoaderRoute: typeof LinksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  LinksRoute: LinksRoute,
   ShortenerRoute: ShortenerRoute,
   StatsRoute: StatsRoute,
 }

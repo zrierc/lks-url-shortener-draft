@@ -12,6 +12,7 @@ export type StatsResponse = {
 
 export type LeaderboardEntry = {
   code: string;
+  original_url: string;
   click_count: number;
   last_clicked: string | null;
 };
@@ -22,3 +23,12 @@ export type ShortenResponse = {
   original_url: string;
   created_at: string;
 };
+
+export type PaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+};
+
