@@ -111,6 +111,20 @@ app.get("/api/openapi.json", (c) => {
             },
           },
         },
+        PaginatedLinks: {
+          type: "object",
+          required: ["items", "total", "page", "limit", "total_pages"],
+          properties: {
+            items: {
+              type: "array",
+              items: { $ref: "#/components/schemas/ShortenResult" },
+            },
+            total: { type: "integer", example: 42 },
+            page: { type: "integer", example: 1 },
+            limit: { type: "integer", example: 20 },
+            total_pages: { type: "integer", example: 3 },
+          },
+        },
         ErrorResponse: {
           type: "object",
           required: ["success", "error", "timestamp"],
@@ -124,6 +138,77 @@ app.get("/api/openapi.json", (c) => {
     },
     paths: {
       "/api/shorten": {
+        get: {
+          summary: "List all shortened URLs",
+          description: "Returns a paginated, filterable, sortable list of all shortened URLs.",
+          operationId: "listUrls",
+          tags: ["URLs"],
+          parameters: [
+            {
+              name: "q",
+              in: "query",
+              required: false,
+              description: "Search term (matches code or original URL)",
+              schema: { type: "string" },
+            },
+            {
+              name: "sort",
+              in: "query",
+              required: false,
+              description: "Sort field",
+              schema: { type: "string", enum: ["code", "original_url", "created_at"], default: "created_at" },
+            },
+            {
+              name: "order",
+              in: "query",
+              required: false,
+              description: "Sort direction",
+              schema: { type: "string", enum: ["asc", "desc"], default: "desc" },
+            },
+            {
+              name: "page",
+              in: "query",
+              required: false,
+              description: "Page number (1-based)",
+              schema: { type: "integer", minimum: 1, default: 1 },
+            },
+            {
+              name: "limit",
+              in: "query",
+              required: false,
+              description: "Items per page (max 100)",
+              schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Paginated list of shortened URLs",
+              content: {
+                "application/json": {
+                  schema: {
+                    allOf: [
+                      { $ref: "#/components/schemas/ApiResponse" },
+                      {
+                        type: "object",
+                        properties: {
+                          data: { $ref: "#/components/schemas/PaginatedLinks" },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+            "500": {
+              description: "Internal server error",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ErrorResponse" },
+                },
+              },
+            },
+          },
+        },
         post: {
           summary: "Shorten a URL",
           description: "Accepts a long URL and returns a 6-character short code and the full short URL.",

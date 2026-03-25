@@ -13,6 +13,14 @@ export type ShortenResult = {
   created_at: string;
 };
 
+export type PaginatedLinks = {
+  items: ShortenResult[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+};
+
 export type ServiceHealth = {
   status: "ok" | "error";
   latency_ms: number;
