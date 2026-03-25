@@ -15,6 +15,20 @@ const config = defineConfig({
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
     viteReact(),
   ],
+  server: {
+    port: 5173,
+    proxy: {
+      // Mirror nginx routing: stats first (longer prefix wins), then generic /api
+      '/api/stats': {
+        target: process.env.ANALYTICS_URL ?? 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/api': {
+        target: process.env.API_URL ?? 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
 })
 
 export default config
