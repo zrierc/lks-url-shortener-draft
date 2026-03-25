@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import ThemeToggle from '#/components/ThemeToggle'
 
 export default function Header() {
   return (
@@ -30,12 +31,23 @@ export default function Header() {
             Shorten
           </Link>
           <Link
+            to="/links"
+            className="nav-link"
+            activeProps={{ className: 'nav-link is-active' }}
+          >
+            Links
+          </Link>
+          <Link
             to="/stats"
             className="nav-link"
             activeProps={{ className: 'nav-link is-active' }}
           >
             Stats
           </Link>
+        </div>
+
+        <div className="order-2 ml-auto sm:order-3">
+          <ThemeToggle />
         </div>
       </nav>
     </header>
