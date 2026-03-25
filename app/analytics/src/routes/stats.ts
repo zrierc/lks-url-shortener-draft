@@ -1,29 +1,79 @@
 import { Hono } from "hono";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, asc, ilike, or, gte, lte, and } from "drizzle-orm";
 import { db } from "../config/database";
 import { urlStats, clickLog, urls } from "../database/schema/index";
 import { ok, err } from "../types/response";
-import type { StatsResponse, LeaderboardEntry } from "../types/index";
+import type { StatsResponse, LeaderboardEntry, PaginatedLeaderboard } from "../types/index";
 
 const stats = new Hono();
 
-// GET /api/stats — Leaderboard (top 10)
+// GET /api/stats — Leaderboard with filter, search, sort, pagination
 stats.get("/", async (c) => {
-  const rows = await db
-    .select({
-      code: urlStats.code,
-      click_count: urlStats.clickCount,
-      last_clicked: urlStats.lastClicked,
-    })
-    .from(urlStats)
-    .orderBy(desc(urlStats.clickCount))
-    .limit(10);
+  const q     = c.req.query("q")    ?? "";
+  const from  = c.req.query("from") ?? "";
+  const to    = c.req.query("to")   ?? "";
+  const sort  = c.req.query("sort")  ?? "click_count";
+  const order = c.req.query("order") ?? "desc";
+  const page  = Math.max(1, parseInt(c.req.query("page")  ?? "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") ?? "10", 10)));
+  const offset = (page - 1) * limit;
 
-  const data: LeaderboardEntry[] = rows.map((r) => ({
-    code: r.code,
-    click_count: r.click_count,
+  // Build WHERE conditions
+  const conditions = [];
+  if (q.trim()) {
+    conditions.push(
+      or(ilike(urlStats.code, `%${q}%`), ilike(urls.original, `%${q}%`)),
+    );
+  }
+  if (from) conditions.push(gte(urlStats.lastClicked, new Date(from)));
+  if (to)   conditions.push(lte(urlStats.lastClicked, new Date(to)));
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  // Sort column
+  const sortCol =
+    sort === "code"         ? urlStats.code :
+    sort === "last_clicked" ? urlStats.lastClicked :
+                              urlStats.clickCount;
+  const orderFn = order === "asc" ? asc : desc;
+
+  // Run items + total count in parallel
+  const [rows, [countRow]] = await Promise.all([
+    db
+      .select({
+        code:         urlStats.code,
+        click_count:  urlStats.clickCount,
+        last_clicked: urlStats.lastClicked,
+        original_url: urls.original,
+      })
+      .from(urlStats)
+      .leftJoin(urls, eq(urlStats.code, urls.code))
+      .where(where)
+      .orderBy(orderFn(sortCol))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(urlStats)
+      .leftJoin(urls, eq(urlStats.code, urls.code))
+      .where(where),
+  ]);
+
+  const total = countRow?.total ?? 0;
+
+  const items: LeaderboardEntry[] = rows.map((r) => ({
+    code:         r.code,
+    original_url: r.original_url ?? "",
+    click_count:  r.click_count,
     last_clicked: r.last_clicked ? r.last_clicked.toISOString() : null,
   }));
+
+  const data: PaginatedLeaderboard = {
+    items,
+    total,
+    page,
+    limit,
+    total_pages: Math.ceil(total / limit),
+  };
 
   return c.json(ok(data));
 });

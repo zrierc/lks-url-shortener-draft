@@ -24,8 +24,17 @@ export type StatsResponse = {
 
 export type LeaderboardEntry = {
   code: string;
+  original_url: string;
   click_count: number;
   last_clicked: string | null;
+};
+
+export type PaginatedLeaderboard = {
+  items: LeaderboardEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
 };
 
 export type ServiceStatus = {
