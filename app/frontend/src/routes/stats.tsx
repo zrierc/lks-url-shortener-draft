@@ -10,14 +10,31 @@ import { ClicksOverTime } from '#/components/charts/ClicksOverTime'
 import { DeviceBreakdown } from '#/components/charts/DeviceBreakdown'
 import { OsBreakdown } from '#/components/charts/OsBreakdown'
 import { BrowserBreakdown } from '#/components/charts/BrowserBreakdown'
+import { useDebounce } from '#/hooks/useDebounce'
 import { apiClient } from '#/api/client'
 import { BarChart2Icon, SearchIcon } from 'lucide-react'
 
 export const Route = createFileRoute('/stats')({ component: StatsPage })
 
+const LB_SORT_OPTIONS = [
+  { value: 'click_count',  label: 'Click Count' },
+  { value: 'code',         label: 'Short Code' },
+  { value: 'last_clicked', label: 'Last Clicked' },
+] as const
+
 function StatsPage() {
   const [codeInput, setCodeInput] = useState('')
   const [activeCode, setActiveCode] = useState('')
+
+  // Leaderboard filter state
+  const [lbSearch, setLbSearch] = useState('')
+  const [lbFrom, setLbFrom] = useState('')
+  const [lbTo, setLbTo] = useState('')
+  const [lbSort, setLbSort] = useState('click_count')
+  const [lbOrder, setLbOrder] = useState('desc')
+  const [lbPage, setLbPage] = useState(1)
+
+  const debouncedLbSearch = useDebounce(lbSearch, 500)
 
   const statsQuery = useQuery({
     queryKey: ['stats', activeCode],
@@ -27,8 +44,17 @@ function StatsPage() {
   })
 
   const leaderboardQuery = useQuery({
-    queryKey: ['leaderboard'],
-    queryFn: () => apiClient.getLeaderboard(),
+    queryKey: ['leaderboard', { q: debouncedLbSearch, lbFrom, lbTo, lbSort, lbOrder, lbPage }],
+    queryFn: () => apiClient.getLeaderboard({
+      q:     debouncedLbSearch,
+      from:  lbFrom,
+      to:    lbTo,
+      sort:  lbSort,
+      order: lbOrder,
+      page:  lbPage,
+      limit: 10,
+    }),
+    placeholderData: (prev) => prev,
   })
 
   function handleSearch(e: React.FormEvent) {
@@ -37,6 +63,25 @@ function StatsPage() {
     if (!code) return
     setActiveCode(code)
   }
+
+  function handleLbDateChange(field: 'from' | 'to', value: string) {
+    if (field === 'from') setLbFrom(value)
+    else setLbTo(value)
+    setLbPage(1)
+  }
+
+  function handleLbSortChange(value: string) {
+    setLbSort(value)
+    setLbPage(1)
+  }
+
+  function handleLbOrderChange(value: string) {
+    setLbOrder(value)
+    setLbPage(1)
+  }
+
+  const lbData = leaderboardQuery.data
+  const lbTotalPages = lbData?.total_pages ?? 1
 
   return (
     <main className="page-wrap px-4 pb-8 pt-14">
@@ -161,9 +206,110 @@ function StatsPage() {
         <section>
           <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-[var(--sea-ink)]">
             <BarChart2Icon className="size-5" />
-            Top 10 Links
+            Leaderboard
           </h2>
-          <Card className="island-shell">
+
+          {/* Leaderboard filters */}
+          <Card className="island-shell mb-4">
+            <CardContent className="pt-4">
+              <div className="flex flex-wrap gap-2 mb-3">
+                <Input
+                  placeholder="Filter by code or URL…"
+                  value={lbSearch}
+                  onChange={(e) => { setLbSearch(e.target.value); setLbPage(1) }}
+                  className="flex-1 min-w-40"
+                />
+                {lbSearch && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setLbSearch(''); setLbPage(1) }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-[var(--sea-ink-soft)]" htmlFor="lb-from">
+                    From
+                  </label>
+                  <input
+                    id="lb-from"
+                    type="date"
+                    value={lbFrom}
+                    onChange={(e) => handleLbDateChange('from', e.target.value)}
+                    className="rounded-md border border-[var(--line)] bg-[var(--chip-bg)] px-2 py-1 text-sm text-[var(--sea-ink)] focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-[var(--sea-ink-soft)]" htmlFor="lb-to">
+                    To
+                  </label>
+                  <input
+                    id="lb-to"
+                    type="date"
+                    value={lbTo}
+                    onChange={(e) => handleLbDateChange('to', e.target.value)}
+                    className="rounded-md border border-[var(--line)] bg-[var(--chip-bg)] px-2 py-1 text-sm text-[var(--sea-ink)] focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-[var(--sea-ink-soft)]" htmlFor="lb-sort">
+                    Sort
+                  </label>
+                  <select
+                    id="lb-sort"
+                    value={lbSort}
+                    onChange={(e) => handleLbSortChange(e.target.value)}
+                    className="rounded-md border border-[var(--line)] bg-[var(--chip-bg)] px-2 py-1 text-sm text-[var(--sea-ink)] focus:outline-none"
+                  >
+                    {LB_SORT_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-[var(--sea-ink-soft)]" htmlFor="lb-order">
+                    Order
+                  </label>
+                  <select
+                    id="lb-order"
+                    value={lbOrder}
+                    onChange={(e) => handleLbOrderChange(e.target.value)}
+                    className="rounded-md border border-[var(--line)] bg-[var(--chip-bg)] px-2 py-1 text-sm text-[var(--sea-ink)] focus:outline-none"
+                  >
+                    <option value="desc">Desc</option>
+                    <option value="asc">Asc</option>
+                  </select>
+                </div>
+                {(lbFrom || lbTo) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setLbFrom(''); setLbTo(''); setLbPage(1) }}
+                  >
+                    Clear dates
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Results count */}
+          {lbData && (
+            <p className="mb-2 text-sm text-[var(--sea-ink-soft)]">
+              {lbData.total === 0
+                ? 'No results.'
+                : `${lbData.total} result${lbData.total !== 1 ? 's' : ''}`}
+            </p>
+          )}
+
+          {/* Leaderboard list */}
+          <Card className="island-shell mb-4">
             <CardContent className="p-0">
               {leaderboardQuery.isPending && (
                 <div className="flex flex-col gap-2 p-4">
@@ -177,32 +323,42 @@ function StatsPage() {
                   Failed to load leaderboard.
                 </p>
               )}
-              {leaderboardQuery.data && leaderboardQuery.data.length === 0 && (
+              {lbData && lbData.items.length === 0 && (
                 <p className="p-6 text-center text-sm text-[var(--sea-ink-soft)]">
-                  No links have been clicked yet.
+                  {debouncedLbSearch ? `No results matching "${debouncedLbSearch}".` : 'No links have been clicked yet.'}
                 </p>
               )}
-              {leaderboardQuery.data && leaderboardQuery.data.length > 0 && (
+              {lbData && lbData.items.length > 0 && (
                 <ol className="divide-y divide-[var(--line)]">
-                  {leaderboardQuery.data.map((entry, i) => (
+                  {lbData.items.map((entry, i) => (
                     <li
                       key={entry.code}
                       className="flex items-center gap-4 px-4 py-3"
                     >
                       <span className="w-5 shrink-0 text-sm font-bold text-[var(--sea-ink-soft)]">
-                        {i + 1}
+                        {(lbPage - 1) * 10 + i + 1}
                       </span>
-                      <button
-                        type="button"
-                        className="flex-1 truncate text-left font-mono text-sm text-[var(--lagoon-deep)] hover:underline"
-                        onClick={() => {
-                          setActiveCode(entry.code)
-                          setCodeInput(entry.code)
-                          window.scrollTo({ top: 0, behavior: 'smooth' })
-                        }}
-                      >
-                        /{entry.code}
-                      </button>
+                      <div className="flex-1 min-w-0">
+                        <button
+                          type="button"
+                          className="block truncate text-left font-mono text-sm text-[var(--lagoon-deep)] hover:underline"
+                          onClick={() => {
+                            setActiveCode(entry.code)
+                            setCodeInput(entry.code)
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                          }}
+                        >
+                          /{entry.code}
+                        </button>
+                        {entry.original_url && (
+                          <span
+                            className="block truncate text-xs text-[var(--sea-ink-soft)]"
+                            title={entry.original_url}
+                          >
+                            {entry.original_url}
+                          </span>
+                        )}
+                      </div>
                       <Badge variant="secondary">{entry.click_count}</Badge>
                     </li>
                   ))}
@@ -210,6 +366,31 @@ function StatsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Leaderboard pagination */}
+          {lbData && lbData.total_pages > 1 && (
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={lbPage <= 1 || leaderboardQuery.isFetching}
+                onClick={() => setLbPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-[var(--sea-ink-soft)]">
+                Page {lbPage} of {lbTotalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={lbPage >= lbTotalPages || leaderboardQuery.isFetching}
+                onClick={() => setLbPage((p) => Math.min(lbTotalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </section>
       </div>
     </main>
