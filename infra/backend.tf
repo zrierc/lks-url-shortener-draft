@@ -8,7 +8,8 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "lks-url-tfstate"
+    # bucket = "lks-url-tfstate"
+    bucket = "lks-url-tfstate-dami"
     key    = "terraform.tfstate"
     region = "us-east-1"
   }
