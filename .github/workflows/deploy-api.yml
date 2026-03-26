@@ -42,7 +42,7 @@ jobs:
           docker build \
             -t $REGISTRY/$REPOSITORY:latest \
             -t $REGISTRY/$REPOSITORY:$IMAGE_TAG \
-            ./api/
+            ./app/api/
           docker push $REGISTRY/$REPOSITORY:latest
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
 
