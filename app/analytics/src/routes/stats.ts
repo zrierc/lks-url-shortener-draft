@@ -141,23 +141,23 @@ stats.get("/:code", async (c) => {
     original_url: originalUrl,
     click_count: statsRow.clickCount,
     last_clicked: statsRow.lastClicked ? statsRow.lastClicked.toISOString() : null,
-    clicks_over_time: (clicksOverTime.rows as Array<{ date: string; count: string }>).map((r) => ({
+    clicks_over_time: (clicksOverTime as Array<{ date: string; count: string }>).map((r) => ({
       date: r.date,
       count: parseInt(r.count, 10),
     })),
-    by_device: (byDevice.rows as Array<{ device_type: string | null; count: string }>).map((r) => ({
+    by_device: (byDevice as Array<{ device_type: string | null; count: string }>).map((r) => ({
       device_type: r.device_type ?? "Unknown",
       count: parseInt(r.count, 10),
     })),
-    by_os: (byOs.rows as Array<{ os: string | null; count: string }>).map((r) => ({
+    by_os: (byOs as Array<{ os: string | null; count: string }>).map((r) => ({
       os: r.os ?? "Unknown",
       count: parseInt(r.count, 10),
     })),
-    by_browser: (byBrowser.rows as Array<{ browser: string | null; count: string }>).map((r) => ({
+    by_browser: (byBrowser as Array<{ browser: string | null; count: string }>).map((r) => ({
       browser: r.browser ?? "Unknown",
       count: parseInt(r.count, 10),
     })),
-    by_country: (byCountry.rows as Array<{ country: string | null; count: string }>).map((r) => ({
+    by_country: (byCountry as Array<{ country: string | null; count: string }>).map((r) => ({
       country: r.country ?? "Unknown",
       count: parseInt(r.count, 10),
     })),
