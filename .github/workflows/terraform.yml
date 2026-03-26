@@ -12,6 +12,9 @@ jobs:
   terraform:
     name: Apply infrastructure
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
 
     steps:
       - name: Checkout
