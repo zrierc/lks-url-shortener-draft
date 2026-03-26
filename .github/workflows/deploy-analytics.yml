@@ -1,19 +1,20 @@
-name: Deploy Frontend
+name: Deploy Analytics Service
 
 on:
   push:
     branches: [main]
     paths:
-      - "frontend/**"
+      - "app/analytics/**"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 concurrency:
-  group: deploy-frontend-${{ github.ref }}
+  group: deploy-analytics-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   deploy:
-    name: Build and deploy frontend
+    name: Build and deploy analytics-service
     runs-on: ubuntu-latest
 
     steps:
@@ -35,20 +36,13 @@ jobs:
       - name: Build and push Docker image
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: lks-url-frontend
+          REPOSITORY: lks-url-analytics
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Fetch ALB DNS from SSM (base-url = "http://<alb-dns>", strip protocol)
-          ALB_DNS=$(aws ssm get-parameter \
-            --name "/lks-url/base-url" \
-            --query "Parameter.Value" \
-            --output text | sed 's|^http://||')
           docker build \
-            --build-arg API_UPSTREAM=$ALB_DNS \
-            --build-arg ANALYTICS_UPSTREAM=$ALB_DNS \
             -t $REGISTRY/$REPOSITORY:latest \
             -t $REGISTRY/$REPOSITORY:$IMAGE_TAG \
-            ./frontend/
+            ./analytics/
           docker push $REGISTRY/$REPOSITORY:latest
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
 
@@ -56,6 +50,6 @@ jobs:
         run: |
           aws ecs update-service \
             --cluster lks-url-cluster \
-            --service lks-url-frontend-svc \
+            --service lks-url-analytics-svc \
             --force-new-deployment \
             --region ${{ secrets.AWS_REGION }}

@@ -1,10 +1,11 @@
-name: Deploy API
+name: Deploy API Service
 
 on:
   push:
     branches: [main]
     paths:
-      - "api/**"
+      - "app/api/**"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 concurrency:
