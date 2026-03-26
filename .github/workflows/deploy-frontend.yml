@@ -39,14 +39,7 @@ jobs:
           REPOSITORY: lks-url-frontend
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Fetch ALB DNS from SSM (base-url = "http://<alb-dns>", strip protocol)
-          ALB_DNS=$(aws ssm get-parameter \
-            --name "/lks-url/base-url" \
-            --query "Parameter.Value" \
-            --output text | sed 's|^http://||')
           docker build \
-            --build-arg API_UPSTREAM=$ALB_DNS \
-            --build-arg ANALYTICS_UPSTREAM=$ALB_DNS \
             -t $REGISTRY/$REPOSITORY:latest \
             -t $REGISTRY/$REPOSITORY:$IMAGE_TAG \
             ./app/frontend/
