@@ -9,8 +9,10 @@ COPY . .
 RUN bun run build
 
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────
-FROM gcr.io/distroless/base-debian12
+FROM gcr.io/distroless/base
 WORKDIR /app
+
+ENV APP_ENV=production
 
 COPY --from=builder /app/dist/server ./server
 COPY --from=builder /app/src/database/migrations ./src/database/migrations

@@ -8,7 +8,7 @@ const client = postgres(env.DATABASE_URL, {
   idle_timeout: 30,
   connect_timeout: 10,
   prepare: true,
-  ssl: 'require',
+  ssl: env.APP_ENV === 'production' ? 'require' : false,
   onnotice: (notice) => {
     // This warning occurs when database has no actual collation version but a version was recorded
     // It's safe to ignore as it doesn't affect functionality
