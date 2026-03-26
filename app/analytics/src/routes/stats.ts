@@ -98,40 +98,55 @@ stats.get("/:code", async (c) => {
     db.select({ original: urls.original }).from(urls).where(eq(urls.code, code)).limit(1),
 
     // clicks_over_time (daily buckets)
-    db.execute<{ date: string; count: string }>(
-      sql`SELECT DATE(clicked_at AT TIME ZONE 'UTC') AS date, COUNT(*)::text AS count
-          FROM click_log WHERE code = ${code}
-          GROUP BY DATE(clicked_at AT TIME ZONE 'UTC')
-          ORDER BY date ASC`,
-    ),
+    db
+      .select({
+        date:  sql<string>`DATE(${clickLog.clickedAt} AT TIME ZONE 'UTC')::text`,
+        count: sql<string>`COUNT(*)::text`,
+      })
+      .from(clickLog)
+      .where(eq(clickLog.code, code))
+      .groupBy(sql`DATE(${clickLog.clickedAt} AT TIME ZONE 'UTC')`)
+      .orderBy(asc(sql`DATE(${clickLog.clickedAt} AT TIME ZONE 'UTC')`)),
 
     // by_device
-    db.execute<{ device_type: string | null; count: string }>(
-      sql`SELECT device_type, COUNT(*)::text AS count
-          FROM click_log WHERE code = ${code}
-          GROUP BY device_type`,
-    ),
+    db
+      .select({
+        device_type: clickLog.deviceType,
+        count:       sql<string>`COUNT(*)::text`,
+      })
+      .from(clickLog)
+      .where(eq(clickLog.code, code))
+      .groupBy(clickLog.deviceType),
 
     // by_os
-    db.execute<{ os: string | null; count: string }>(
-      sql`SELECT os, COUNT(*)::text AS count
-          FROM click_log WHERE code = ${code}
-          GROUP BY os`,
-    ),
+    db
+      .select({
+        os:    clickLog.os,
+        count: sql<string>`COUNT(*)::text`,
+      })
+      .from(clickLog)
+      .where(eq(clickLog.code, code))
+      .groupBy(clickLog.os),
 
     // by_browser
-    db.execute<{ browser: string | null; count: string }>(
-      sql`SELECT browser, COUNT(*)::text AS count
-          FROM click_log WHERE code = ${code}
-          GROUP BY browser`,
-    ),
+    db
+      .select({
+        browser: clickLog.browser,
+        count:   sql<string>`COUNT(*)::text`,
+      })
+      .from(clickLog)
+      .where(eq(clickLog.code, code))
+      .groupBy(clickLog.browser),
 
     // by_country
-    db.execute<{ country: string | null; count: string }>(
-      sql`SELECT country, COUNT(*)::text AS count
-          FROM click_log WHERE code = ${code}
-          GROUP BY country`,
-    ),
+    db
+      .select({
+        country: clickLog.country,
+        count:   sql<string>`COUNT(*)::text`,
+      })
+      .from(clickLog)
+      .where(eq(clickLog.code, code))
+      .groupBy(clickLog.country),
   ]);
 
   const originalUrl = urlRows[0]?.original ?? "";
@@ -141,25 +156,25 @@ stats.get("/:code", async (c) => {
     original_url: originalUrl,
     click_count: statsRow.clickCount,
     last_clicked: statsRow.lastClicked ? statsRow.lastClicked.toISOString() : null,
-    clicks_over_time: (clicksOverTime as Array<{ date: string; count: string }>).map((r) => ({
-      date: r.date,
+    clicks_over_time: clicksOverTime.map((r) => ({
+      date:  r.date,
       count: parseInt(r.count, 10),
     })),
-    by_device: (byDevice as Array<{ device_type: string | null; count: string }>).map((r) => ({
+    by_device: byDevice.map((r) => ({
       device_type: r.device_type ?? "Unknown",
+      count:       parseInt(r.count, 10),
+    })),
+    by_os: byOs.map((r) => ({
+      os:    r.os ?? "Unknown",
       count: parseInt(r.count, 10),
     })),
-    by_os: (byOs as Array<{ os: string | null; count: string }>).map((r) => ({
-      os: r.os ?? "Unknown",
-      count: parseInt(r.count, 10),
-    })),
-    by_browser: (byBrowser as Array<{ browser: string | null; count: string }>).map((r) => ({
+    by_browser: byBrowser.map((r) => ({
       browser: r.browser ?? "Unknown",
-      count: parseInt(r.count, 10),
+      count:   parseInt(r.count, 10),
     })),
-    by_country: (byCountry as Array<{ country: string | null; count: string }>).map((r) => ({
+    by_country: byCountry.map((r) => ({
       country: r.country ?? "Unknown",
-      count: parseInt(r.count, 10),
+      count:   parseInt(r.count, 10),
     })),
   };
 
