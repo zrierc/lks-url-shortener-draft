@@ -8,14 +8,14 @@ RUN bun install --frozen-lockfile
 
 # Copy source and compile to self-contained binary
 COPY . .
-RUN bun build src/index.ts --compile --outfile server
+RUN bun run build
 
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM gcr.io/distroless/base-debian12
 WORKDIR /app
 
 # Copy ONLY the compiled binary and migrations
-COPY --from=builder /app/server .
+COPY --from=builder /app/dist/server ./server
 COPY --from=builder /app/src/database/migrations ./src/database/migrations
 
 USER nonroot:nonroot

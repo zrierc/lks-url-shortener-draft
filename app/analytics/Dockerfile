@@ -6,13 +6,13 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY . .
-RUN bun build src/index.ts --compile --outfile server
+RUN bun run build
 
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM gcr.io/distroless/base-debian12
 WORKDIR /app
 
-COPY --from=builder /app/server .
+COPY --from=builder /app/dist/server ./server
 COPY --from=builder /app/src/database/migrations ./src/database/migrations
 # geoip-lite data files (not embedded by bun compile)
 COPY --from=builder /app/node_modules/geoip-lite/data ./node_modules/geoip-lite/data
