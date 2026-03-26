@@ -1,18 +1,64 @@
-
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>lks-url-portal</title>
+
+    <!-- Primary meta -->
+    <title>LKS CC — URL Shortener App</title>
+    <meta
+      name="description"
+      content="Shorten long URLs into clean short links and track every click with real-time analytics — device, browser, OS, and location breakdowns."
+    />
+
+    <!-- Open Graph (Facebook, LinkedIn, WhatsApp, etc.) -->
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="LKS URL — URL Shortener &amp; Analytics"
+    />
+    <meta
+      property="og:description"
+      content="Shorten long URLs into clean short links and track every click with real-time analytics — device, browser, OS, and location breakdowns."
+    />
+    <meta property="og:image" content="/android-chrome-512x512.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="LKS URL — URL Shortener &amp; Analytics"
+    />
+    <meta
+      name="twitter:description"
+      content="Shorten long URLs into clean short links and track every click with real-time analytics."
+    />
+    <meta name="twitter:image" content="/android-chrome-512x512.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
     <script>
       (function () {
-        var stored = localStorage.getItem('theme');
-        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var resolved = stored === 'light' ? 'light' : stored === 'dark' ? 'dark' : (prefersDark ? 'dark' : 'light');
+        var stored = localStorage.getItem("theme");
+        var prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches;
+        var resolved =
+          stored === "light"
+            ? "light"
+            : stored === "dark"
+              ? "dark"
+              : prefersDark
+                ? "dark"
+                : "light";
         document.documentElement.classList.add(resolved);
-        if (stored && stored !== 'auto') {
-          document.documentElement.setAttribute('data-theme', stored);
+        if (stored && stored !== "auto") {
+          document.documentElement.setAttribute("data-theme", stored);
         }
         document.documentElement.style.colorScheme = resolved;
       })();
