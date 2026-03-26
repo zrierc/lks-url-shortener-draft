@@ -1,204 +1,161 @@
-Welcome to your new TanStack Start app! 
+# lks-url-portal (frontend)
 
-# Getting Started
+React SPA for the lks-url URL Shortener. Provides a landing page, a URL shortening form, and a stats dashboard with click analytics charts. Served in production by nginx as a static build — all API routing is handled by the ALB before requests reach this container.
 
-To run this application:
+---
+
+## Tech Stack
+
+lks-url-portal uses a number of technologies to work properly:
+
+- [React](https://react.dev) - library for building user interfaces
+- [TypeScript](https://www.typescriptlang.org) - typed JavaScript at any scale
+- [Vite](https://vite.dev) - fast frontend build tool and dev server
+- [TanStack Router](https://tanstack.com/router) - type-safe file-based routing for React
+- [TanStack Query](https://tanstack.com/query) - data fetching and server state management
+- [Recharts](https://recharts.org) - composable charting library for React
+- [TailwindCSS](https://tailwindcss.com) - utility-first CSS framework
+- [ShadCN UI](https://ui.shadcn.com) - accessible component library built on Radix UI
+- [Zod](https://zod.dev) - TypeScript-first schema validation
+- [Biome](https://biomejs.dev) - fast linter and formatter
+- [Vitest](https://vitest.dev) - Vite-native unit testing framework
+- [nginx](https://nginx.org) - high-performance web server for static file serving
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org) v22 or [Bun](https://bun.sh) v1
+- shortener-api running at `http://localhost:3000` (or configured via `.env`)
+- analytics-service running at `http://localhost:3001` (or configured via `.env`)
+
+### Setup
 
 ```bash
+# 1. Install dependencies
 bun install
-bun --bun run dev
+
+# 2. Copy and configure env (dev-time only — sets Vite proxy targets)
+cp .env.example .env
+# Edit .env — set API_URL and ANALYTICS_URL
+
+# 3. Start development server
+bun run dev
 ```
 
-# Building For Production
+App starts at `http://localhost:5173`.  
+The Vite dev server proxies `/api/` to shortener-api/analytics-service based on `vite.config.ts`.
 
-To build this application for production:
+> [!NOTE]
+> `.env` variables are only consumed by `vite.config.ts` for local proxy configuration. They are not embedded in the production build. In production, the browser calls `/api/*` directly — the ALB handles routing to the correct backend service.
+
+---
+
+## Running with Node.js
+
+> [!NOTE]
+> Bun is the primary runtime. If you prefer Node.js v22, all scripts work identically —
+> just replace `bun install` with `npm install`. No other changes are needed.
 
 ```bash
-bun --bun run build
+npm install
+npm run dev
+npm run build
 ```
 
-## Testing
+---
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+## Environment Variables
+
+These variables are **dev-time only** — consumed by `vite.config.ts` to configure the proxy. They are never bundled into the build output.
+
+| Variable        | Required (dev) | Default                 | Description                                    |
+| --------------- | -------------- | ----------------------- | ---------------------------------------------- |
+| `API_URL`       | No             | `http://localhost:3000` | Proxy target for `/api/*` → shortener-api      |
+| `ANALYTICS_URL` | No             | `http://localhost:3001` | Proxy target for `/api/stats*` → analytics-svc |
+
+---
+
+## Pages
+
+### `/` — Landing Page
+
+Static page with hero section, app name, tagline, and a CTA button that navigates to `/shortener`. No data fetching.
+
+### `/shortener` — URL Shortener
+
+- URL input field with Zod validation (must be a valid URL)
+- Submits `POST /api/shorten` via TanStack Query mutation
+- On success: displays the short link in a result card with a copy-to-clipboard button
+- Shows loading state during submission and error state on failure
+
+### `/stats` — Analytics Dashboard
+
+- Short code lookup form — fetches `GET /api/stats/:code`
+- Displays: click count, last clicked timestamp
+- Four Recharts charts:
+  - **Clicks over time** — LineChart (daily buckets)
+  - **Device breakdown** — PieChart (desktop / mobile / tablet / bot)
+  - **OS breakdown** — BarChart
+  - **Browser breakdown** — BarChart
+- Leaderboard section — fetches `GET /api/stats` (paginated)
+- Loading skeletons while fetching; empty state when no data is available
+
+---
+
+## API Reference
+
+The frontend calls these endpoints. All responses follow the `ApiResponse<T>` envelope: `{ success, data?, error?, timestamp }`.
+
+| Method | Path               | Service       | Description              |
+| ------ | ------------------ | ------------- | ------------------------ |
+| `POST` | `/api/shorten`     | shortener-api | Shorten a URL            |
+| `GET`  | `/api/stats/:code` | analytics-svc | Per-code click analytics |
+| `GET`  | `/api/stats`       | analytics-svc | Paginated leaderboard    |
+
+---
+
+## Commands
+
+| Command           | Description                          |
+| ----------------- | ------------------------------------ |
+| `bun run dev`     | Start Vite dev server with HMR       |
+| `bun run build`   | Production build to `./dist/`        |
+| `bun run preview` | Preview the production build locally |
+| `bun run test`    | Run tests with Vitest                |
+| `bun run lint`    | Lint with Biome                      |
+| `bun run format`  | Format with Biome                    |
+| `bun run check`   | Lint + format check with Biome       |
+
+**Build Docker image:**
 
 ```bash
-bun --bun run test
+docker build -t lks-url-frontend .
+docker run -p 80:80 lks-url-frontend
 ```
 
-## Styling
+The image uses a two-stage build: `oven/bun:1` to build the Vite app, then `nginx:alpine` to serve the static output. The custom `nginx.conf` configures the SPA fallback (`try_files $uri /index.html`). No proxy block is needed — the ALB routes `/api/*` to the backend services before requests reach nginx.
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+**Deploy to AWS:**
 
-### Removing Tailwind CSS
+Push any change under `app/frontend/` to the `main` branch. The `deploy-frontend.yml` GitHub Actions workflow builds the image, pushes to ECR (`lks-url-frontend`), and forces a new ECS deployment on `lks-url-frontend-svc` automatically.
 
-If you prefer not to use Tailwind CSS:
+---
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `bun install @tailwindcss/vite tailwindcss -D`
+## References
 
-## Linting & Formatting
-
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
-
-
-```bash
-bun --bun run lint
-bun --bun run format
-bun --bun run check
-```
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+- [React documentation](https://react.dev/learn)
+- [Vite documentation](https://vite.dev/guide/)
+- [TanStack Router documentation](https://tanstack.com/router/latest/docs)
+- [TanStack Query documentation](https://tanstack.com/query/latest/docs)
+- [Recharts documentation](https://recharts.org/en-US/api)
+- [TailwindCSS documentation](https://tailwindcss.com/docs)
+- [ShadCN UI documentation](https://ui.shadcn.com/docs)
+- [Biome documentation](https://biomejs.dev/guides/getting-started/)
+- [Vitest documentation](https://vitest.dev/guide/)
+- [GitHub Actions — `actions/checkout`](https://github.com/actions/checkout)
+- [GitHub Actions — `aws-actions/configure-aws-credentials`](https://github.com/aws-actions/configure-aws-credentials)
+- [GitHub Actions — `aws-actions/amazon-ecr-login`](https://github.com/aws-actions/amazon-ecr-login)
+- [Amazon ECS — update-service CLI reference](https://docs.aws.amazon.com/cli/latest/reference/ecs/update-service.html)
