@@ -1,10 +1,16 @@
 import { Hono } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { env } from "./env";
 import statsRoute from "./routes/stats";
 import healthRoute from "./routes/health";
 import { startConsumer, stopConsumer } from "./consumer/index";
-import { closeDatabase } from "./config/database";
+import { db, closeDatabase } from "./config/database";
+
+// Run DB migrations before starting
+console.log("[db] Running migrations...");
+await migrate(db, { migrationsFolder: "./src/database/migrations" });
+console.log("[db] Migrations applied");
 
 const app = new Hono();
 
