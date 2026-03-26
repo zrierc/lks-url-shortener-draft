@@ -53,7 +53,7 @@ app.post("/api/shorten", async (c) => {
 
     const result: ShortenResult = {
       code: inserted.code,
-      short_url: `${env.BASE_URL}/${inserted.code}`,
+      short_url: `${env.BASE_URL}/s/${inserted.code}`,
       original_url: inserted.original,
       created_at: inserted.createdAt.toISOString(),
     };
@@ -98,7 +98,7 @@ app.get("/api/shorten", async (c) => {
     const result: PaginatedLinks = {
       items: rows.map((r) => ({
         code:         r.code,
-        short_url:    `${env.BASE_URL}/${r.code}`,
+        short_url:    `${env.BASE_URL}/s/${r.code}`,
         original_url: r.original,
         created_at:   r.createdAt.toISOString(),
       })),

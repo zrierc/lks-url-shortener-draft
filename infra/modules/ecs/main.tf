@@ -95,6 +95,13 @@ resource "aws_ecs_task_definition" "api" {
 
       secrets = local.api_secrets
 
+      environment = [
+        {
+          name  = "APP_ENV"
+          value = "production"
+        }
+      ]
+
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -162,6 +169,13 @@ resource "aws_ecs_task_definition" "analytics" {
       ]
 
       secrets = local.analytics_secrets
+
+      environment = [
+        {
+          name  = "APP_ENV"
+          value = "production"
+        }
+      ]
 
       logConfiguration = {
         logDriver = "awslogs"

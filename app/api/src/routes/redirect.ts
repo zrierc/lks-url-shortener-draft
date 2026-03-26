@@ -8,7 +8,7 @@ import { err } from "../types/response";
 
 const app = new Hono();
 
-app.get("/:code", async (c) => {
+app.get("/s/:code", async (c) => {
   const code = c.req.param("code");
 
   try {
