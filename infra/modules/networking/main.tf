@@ -110,7 +110,7 @@ resource "aws_route_table_association" "private_b" {
 # Security Groups
 resource "aws_security_group" "alb" {
   name        = "lks-url-alb-sg"
-  description = "ALB security group — HTTP from internet"
+  description = "ALB security group - HTTP from internet"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -132,7 +132,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "ecs" {
   name        = "lks-url-ecs-sg"
-  description = "ECS tasks — ingress from ALB, egress all"
+  description = "ECS tasks - ingress from ALB, egress all"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -168,7 +168,7 @@ resource "aws_security_group" "ecs" {
 
 resource "aws_security_group" "rds" {
   name        = "lks-url-rds-sg"
-  description = "RDS — ingress from ECS only"
+  description = "RDS - ingress from ECS only"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -190,7 +190,7 @@ resource "aws_security_group" "rds" {
 
 resource "aws_security_group" "cache" {
   name        = "lks-url-cache-sg"
-  description = "ElastiCache — ingress from ECS only (Batch B)"
+  description = "ElastiCache - ingress from ECS only (Batch B)"
   vpc_id      = aws_vpc.main.id
 
   ingress {
