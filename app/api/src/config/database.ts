@@ -1,16 +1,24 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import { env } from "../env";
 import * as schema from "../database/schema";
 
-const pool = new Pool({
-  connectionString: env.DATABASE_URL,
+// Create PostgreSQL connection
+const client = postgres(env.DATABASE_URL, {
   max: 10,
-  idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 5_000,
+  idle_timeout: 30,
+  connect_timeout: 10,
+  prepare: true,
+  onnotice: (notice) => {
+    // This warning occurs when database has no actual collation version but a version was recorded
+    // It's safe to ignore as it doesn't affect functionality
+    if (notice.code === '01000' && notice.message?.includes('collation version')) {
+      return; // Suppress this specific warning
+    }
+  },
 });
 
-export const db = drizzle(pool, { schema });
+export const db = drizzle(client, { schema });
 
 export async function checkDatabase(): Promise<{
   status: "ok" | "error";
@@ -19,7 +27,7 @@ export async function checkDatabase(): Promise<{
 }> {
   const start = Date.now();
   try {
-    await pool.query("SELECT 1");
+    await client`SELECT 1`;
     return { status: "ok", latency_ms: Date.now() - start };
   } catch (e) {
     return {
@@ -31,5 +39,5 @@ export async function checkDatabase(): Promise<{
 }
 
 export async function closeDatabase(): Promise<void> {
-  await pool.end();
+  await client.end();
 }
